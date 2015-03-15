@@ -174,6 +174,8 @@ compress(void *s_start, void *d_start, size_t s_len)
 	return (dst - (uchar_t *)d_start);
 }
 
+// modified by ARB to return *s_used, a count of how many source bytes were consumed
+// necessary for streaming use
 size_t
 decompress(void *s_start, void *d_start, size_t s_len, size_t d_len, size_t *s_used)	// ARB
 {

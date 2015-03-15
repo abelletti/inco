@@ -1,0 +1,14 @@
+Stream format is *very* simple.
+
+Consists of 0 or more blocks, each with the following format:
+
+byte
+0: format of following data
+    FLAG_UNCOMPRESSED (0x0)
+    FLAG_LZJB (0x1)
+1-n: block of data in above format
+   where n <= COMPBLOCK (currently 16384)
+
+On the decompression side, you'll know how long a compressed block
+was based on the extra value returned by the LZJB decompress function
+

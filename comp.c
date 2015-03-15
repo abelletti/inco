@@ -30,34 +30,44 @@ int main( int argc, char *argv[] )
 	int lenComp;
 	int lenWritten;
 	uchar_t	format;		// what is format of following block?
-	int inSize;		// size to compress for next block
+	int inSize;		// size to compress for next block, always COMPBLOCK
+				// unless we've hit EOF and this is final block
 
-	// need extra room to be sure we complete an OUTBLOCK
-	if( NULL == (compData = malloc( OUTBLOCK + COMPBLOCK + 1 )))
-	{
-		perror( "malloc compData" );
-		exit( 3 );
-	}
-
+	// allocate the necessary read buffer
 	if( NULL == (rawData = malloc( READBLOCK )))
 	{
 		perror( "malloc rawData" );
 		exit( 2 );
 	}
 
+	// allocate sufficient output buffer to hold an entire OUTBLOCK plus
+	// enough extra to hold the last compressed block worth of output
+	if( NULL == (compData = malloc( OUTBLOCK + COMPBLOCK + 1 )))
+	{
+		perror( "malloc compData" );
+		exit( 3 );
+	}
 
-	compPtr = compData;		// position in the compressed data buffer
+	compPtr = compData;		// next free byte in the compressed data buffer
+
 	for( ;; ) {
+		// FIRST PART: fetch a block of data
+		// in an ideal world we'd use a separate thread for this
+		// we're going to request an entire READBLOCK bytes worth of data.
+		// Depending upon how our input is provided (redirect vs. pipe),
+		// that request may or may not be satisfied in full.
+	
 		lenRead = read( STDIN_FILENO, rawData, READBLOCK );
-		endData = rawData + lenRead;	// end of the raw data block
+		endData = rawData + lenRead;	// end of the raw data block, first free byte
 #if DEBUG
 		fprintf( stderr, "read %d bytes\n", lenRead );
 #endif
-		// are we done?	
+		// hit EOF and done?
 		if( lenRead == 0 ) { break; }
 
 		if( lenRead % COMPBLOCK )
 		// we've got a partial read, need to make it an even number of COMPBLOCKs
+		// this could require more than one try, so we'll loop
 		{
 			int remaining = COMPBLOCK - (lenRead % COMPBLOCK );
 #if DEBUG
@@ -66,21 +76,27 @@ int main( int argc, char *argv[] )
 			do {
 				lenRead = read( STDIN_FILENO, endData, remaining );
 #if DEBUG
-			fprintf( stderr, "read %d more bytes\n", lenRead );
-			fprintf( stderr, "errno = %d\n", errno );
-			perror( "reading more" );
+				fprintf( stderr, "read %d more bytes\n", lenRead );
+				fprintf( stderr, "errno = %d\n", errno );
+				perror( "reading more" );
 #endif
 				remaining -= lenRead;
 				endData += lenRead;	// end of the raw data block
 			} while ( (lenRead != 0) && (remaining != 0 ));
+			// end once we've reached a COMPBLOCK boundary or hit EOF
 		}
 
+		// SECOND PART: compress what we've got and send it along
+		// data starts at rawData, runs through endData-1
 
 		for( readPtr = rawData; readPtr < endData; readPtr += COMPBLOCK )
 		{
 #if DEBUG
-			fprintf( stderr, "endData - readPtr = %d\n", (endData - readPtr ));
-			fprintf( stderr, "compPtr offset = %d\n", compPtr - compData );
+			fprintf( stderr,
+			  "endData - readPtr (data left in buffer to compress) = %d\n",
+			  (endData - readPtr ));
+			fprintf( stderr, "compPtr offset (how much output in buffer) = %d\n",
+			  compPtr - compData );
 #endif
 			// if we have at least a full COMPBLOCK left to compress
 			if( (endData - readPtr) >= COMPBLOCK)
@@ -91,13 +107,23 @@ int main( int argc, char *argv[] )
 			{
 				inSize = endData - readPtr;
 #if DEBUG
-			fprintf( stderr, "dealing with partial COMPBLOCK of %d\n", inSize );
+				fprintf( stderr, "dealing with partial COMPBLOCK of %d\n", inSize );
 #endif
 			}
+			// compress to compPtr+1 in order to leave *compPtr free for
+			// the format flag
 			lenComp = compress( readPtr, compPtr+1, inSize );
 #if DEBUG
 			fprintf( stderr, "compressed %d bytes to %d bytes\n", inSize, lenComp );
 #endif
+			if( lenComp > inSize )
+			{
+				// this should never, ever happen
+				fprintf( stderr, "FAIL: lenComp=%d > inSize=%d!!!",
+				  lenComp, inSize );
+				exit( 6 );
+			}
+
 			if( lenComp == inSize )
 			// we got nothing out of that
 			{
