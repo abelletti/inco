@@ -1,7 +1,7 @@
 all : inline
 
 clean :
-	rm -f inline *.o
+	rm -f comp decomp *.o
 
 inline: comp decomp
 
