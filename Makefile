@@ -1,3 +1,5 @@
+CFLAGS = -O
+
 all : inline
 
 clean :
