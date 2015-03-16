@@ -9,7 +9,7 @@
 #define FLAG_UNCOMPRESSED 0
 #define FLAG_LZJB 1
 
-#define DEBUG 1
+#define DEBUG 0
 
 // chunk size to read
 #define INBLOCK 1048576	
@@ -29,6 +29,7 @@ int main( int argc, char *argv[] )
 	int lenDecomp;
 	int lenUsed;
 	int lenWritten;
+	int available;		// bytes of compressed data available in compData
 
 	// leave room for partial COMPBLOCK plus flag so we can always read full INBLOCK
 	if( NULL == (compData = malloc( INBLOCK + COMPBLOCK + 1 )))
@@ -38,117 +39,139 @@ int main( int argc, char *argv[] )
 	}
 
 	// enough output buffer space to always finish one more COMPBLOCK
+	// we know they'll all decompress to a COMPBLOCK in size, which
+	// should divide evenly into OUTBLOCK, but to be flexible for future
+	// changes, we'll do it this way.
 	if( NULL == (outData = malloc( OUTBLOCK + COMPBLOCK )))
 	{
 		perror( "malloc outData" );
 		exit( 3 );
 	}
 
-	outEnd = outData + OUTBLOCK;
-	outPtr = outData;
+	outEnd = outData + OUTBLOCK; // first byte past end of outData buffer
+	outPtr = outData; // where to write next decompressed COMPBLOCK in outData
 	compPtr = compData;
+	available = 0;
 
-	lenRead = read( STDIN_FILENO, compPtr, INBLOCK );
-#if DEBUG
-	fprintf( stderr, "DC: read %d bytes\n", lenRead );
-#endif
-	if( lenRead == 0 )
-	{	// no input means no output
-		exit( 0 );
-	}
-	lenRemaining = lenRead;
+	for( ;; ) {
+		// now we'll start reading compressed data from STDIN
+		// Trying to read an INBLOCK but will settle for at least
+		// a COMPBLOCK+1 since that guarantees enough for a
+		// successful decompress (in the longest case, which will
+		// be a flag byte followed by an uncompressed block
 
-	while( lenRemaining > 0 )	
-	{
-		if( *(uchar_t *)compPtr == FLAG_LZJB )
-		{
-			lenDecomp = decompress( compPtr+1, outPtr, lenRemaining-1, COMPBLOCK,
-			  &lenUsed );
-#if DEBUG
-			fprintf( stderr, "DC: expanded to %d bytes\n", lenDecomp );
-			fprintf( stderr, "DC: used %d compressed bytes\n", lenUsed );
-#endif
-			compPtr += (lenUsed+1);
-			outPtr += lenDecomp;
-			lenRemaining -= (lenUsed+1);
-		}
-		else if( *(uchar_t *)compPtr == FLAG_UNCOMPRESSED )
-		{
-			int size = lenRemaining - 1;
-			if( size > COMPBLOCK )
-				size = COMPBLOCK;
-			memcpy( outPtr, compPtr+1, size );
-#if DEBUG
-			fprintf( stderr, "DC: copied %d bytes as-is\n", size );
-#endif
-			compPtr += (size+1);
-			outPtr += size;
-			lenRemaining -= (size+1);
-		}
-		else
-		{
-			fprintf( stderr, "ALERT!  Unknown format %d encountered\n",
-			  *(uchar_t *)compPtr );
-			exit( 1 );
-		}
-
-		// much of this logic isn't necessary given that we know we'll expand to
-		// COMPBLOCK each time; keeping for flexibility, for now
-
-		if( (outEnd - outPtr) < COMPBLOCK )
-		{	// we may not have enough room for another expanded block, gotta flush
-			lenWritten = write( STDOUT_FILENO, outData, OUTBLOCK);
-#if DEBUG
-			fprintf( stderr, "DC: Wrote %d bytes\n", lenWritten );
-#endif
-			if( lenWritten == -1 )
+		do {
+			if( -1 == (lenRead = read( STDIN_FILENO, compPtr, INBLOCK - available)))
 			{
-				perror( "write to STDOUT" );
+				// something has gone badly wrong
+				perror( "read from STDIN" );
 				exit( 4 );
 			}
-			else if( lenWritten != OUTBLOCK )
+#if DEBUG
+			fprintf( stderr, "DC: read %d when requesting %d\n", lenRead,
+			  INBLOCK - available );
+#endif
+			if( !lenRead )
 			{
-				fprintf( stderr, "Short write!  Wrote %d, had %d\n",
-		  		  lenWritten, OUTBLOCK );
-				exit( 5 );
+				// EOF, we're done reading!
+				break;
 			}
-			// now move what's left to beginning of next OUTBLOCK
-#if DEBUG
-			fprintf( stderr, "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
-				outData, outPtr, (outEnd - outPtr));
-#endif
-			memmove( outData, outPtr, (outEnd - outPtr));
-			outPtr -= OUTBLOCK;
-#if DEBUG
-			fprintf( stderr, "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
-				outData, outPtr, (outEnd - outPtr));
-#endif
-		}
+			available += lenRead;
+			compPtr += lenRead;
+		} while( available < (COMPBLOCK + 1));
 
-		if( lenRemaining < (COMPBLOCK+1) )
-		// we might not have enough to decompress a block, try reading more
-		{
-#if DEBUG
-			fprintf( stderr, "DC: lenRemaining = %d\n", lenRemaining );
-#endif
-			// first must move the remainder to start of buffer
-			memmove( compData, compPtr, lenRemaining );
-			compPtr = compData;
+		if( !available )
+			break;	// we've come back to read more but gotten nothing; EOF
+		
+		// when we get here, compData is guaranteed to point to at least
+		// COMPBLOCK+1 bytes of data UNLESS we've hit EOF after a small read
+		// available counts how many bytes of compressed data we have
+		// those bytes start at compData for now
 
-			lenRead = read( STDIN_FILENO, compPtr + lenRemaining, INBLOCK );
+		compPtr = compData;
+		do {
 #if DEBUG
-			fprintf( stderr, "DC: read %d bytes\n", lenRead );
+			fprintf( stderr, "DC: coming into decompress, available=%d\n",
+			  available );
 #endif
-			lenRemaining += lenRead;
-		}
+			if( *(uchar_t *)compPtr == FLAG_LZJB )
+			{
+				lenDecomp = decompress( compPtr+1, outPtr, available-1,
+				  COMPBLOCK, &lenUsed );
 #if DEBUG
-		fprintf( stderr, "DC: lenRemaining = %d\n", lenRemaining );
+				fprintf( stderr, "DC: expanded to %d bytes\n", lenDecomp );
+				fprintf( stderr, "DC: used %d compressed bytes\n", lenUsed );
 #endif
+				compPtr += (lenUsed+1);
+				outPtr += lenDecomp;
+				available -= (lenUsed+1);
+			}
+			else if( *(uchar_t *)compPtr == FLAG_UNCOMPRESSED )
+			{
+				int size = available - 1;
+				if( size > COMPBLOCK )
+					size = COMPBLOCK;
+				memcpy( outPtr, compPtr+1, size );
+#if DEBUG
+				fprintf( stderr, "DC: copied %d bytes as-is\n", size );
+#endif
+				compPtr += (size+1);
+				outPtr += size;
+				available -= (size+1);
+			}
+			else
+			{
+				fprintf( stderr, "FAIL: unknown format 0x%02x encountered\n",
+				  *(uchar_t *)compPtr );
+				exit( 1 );
+			}
+#if DEBUG
+			fprintf( stderr, "available = %d\n", available );
+#endif
+			// now, is outData getting full enough that we need to flush?
+
+			if( (outEnd - outPtr) < COMPBLOCK )
+			{	// we may not have enough room for another expanded block, gotta flush
+				lenWritten = write( STDOUT_FILENO, outData, OUTBLOCK);
+#if DEBUG
+				fprintf( stderr, "DC: Wrote %d bytes\n", lenWritten );
+#endif
+				if( lenWritten == -1 )
+				{
+					perror( "write to STDOUT" );
+					exit( 4 );
+				}
+				else if( lenWritten != OUTBLOCK )
+				{
+					fprintf( stderr, "Short write!  Wrote %d, had %d\n",
+		  			  lenWritten, OUTBLOCK );
+					exit( 5 );
+				}
+				// now move what's left to beginning of next OUTBLOCK
+#if DEBUG
+				fprintf( stderr,
+				  "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
+				  outData, outPtr, (outEnd - outPtr));
+#endif
+				memmove( outData, outPtr, (outEnd - outPtr));
+				outPtr -= OUTBLOCK;
+#if DEBUG
+				fprintf( stderr,
+				  "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
+				  outData, outPtr, (outEnd - outPtr));
+#endif
+			}
+		} while( available >= (COMPBLOCK +1 ));
+
+		// unless available==0, move that data back to start of compData
+		memmove( compData, compPtr, available );
+		compPtr = compData + available;
 	}
 
-	// now we must flush whatever is left in the output buffer
-	lenWritten = write( STDOUT_FILENO, outData, (outPtr - outData));
-	if( lenWritten == -1 )
+	// done reading and decompressing but may have something left in the
+	// output buffer; write it.
+
+	if( -1 == (lenWritten = write( STDOUT_FILENO, outData, (outPtr - outData))))
 	{
 		perror( "final write to STDOUT" );
 		exit( 6 );
@@ -160,6 +183,5 @@ int main( int argc, char *argv[] )
 		exit( 7 );
 	}
 
-	return 0;
+	exit( 0 );
 }
-

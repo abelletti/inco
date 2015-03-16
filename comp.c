@@ -8,7 +8,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
-#define DEBUG 1
+#define DEBUG 0
 
 #define FLAG_UNCOMPRESSED 0
 #define FLAG_LZJB 1
