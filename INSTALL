@@ -8,11 +8,3 @@ CC=gcc make
 Also available:
 
 make clean
-
-If you haven't got a Solaris box handy, I've found the easiest way to test
-is via the Vagrant box "omniti/omnios-r151008".  For some of my testing, I
-upgraded to the r151010 release via the instructions at
-http://omnios.omniti.com/wiki.php/Upgrade_r151008_r151010.  This may be
-necessary in order to install the "mbuffer" package and is certainly
-needed if you require the "netcat" package.
-
