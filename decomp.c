@@ -1,3 +1,5 @@
+// (c) 2015 Allen R. Belletti
+
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

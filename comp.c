@@ -1,3 +1,5 @@
+// (c) 2015 Allen R. Belletti
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
