@@ -8,18 +8,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define FLAG_UNCOMPRESSED 0
-#define FLAG_LZJB 1
+#include "inco.h"
 
-#define DEBUG 0
-
-// chunk size to read
-#define INBLOCK 1048576	
-// output buffer size, we know it won't grow faster than compressor's COMPBLOCK
-#define OUTBLOCK 1048576
-#define COMPBLOCK 16384
-
-int main( int argc, char *argv[] )
+int decomp( void )
 {
 	void *compData;
 	void *compPtr;
@@ -37,7 +28,7 @@ int main( int argc, char *argv[] )
 	if( NULL == (compData = malloc( INBLOCK + COMPBLOCK + 1 )))
 	{
 		perror( "malloc compData" );
-		exit( 2 );
+		return 2;
 	}
 
 	// enough output buffer space to always finish one more COMPBLOCK
@@ -47,7 +38,7 @@ int main( int argc, char *argv[] )
 	if( NULL == (outData = malloc( OUTBLOCK + COMPBLOCK )))
 	{
 		perror( "malloc outData" );
-		exit( 3 );
+		return 3;
 	}
 
 	outEnd = outData + OUTBLOCK; // first byte past end of outData buffer
@@ -67,7 +58,7 @@ int main( int argc, char *argv[] )
 			{
 				// something has gone badly wrong
 				perror( "read from STDIN" );
-				exit( 4 );
+				return 4;
 			}
 #if DEBUG
 			fprintf( stderr, "DC: read %d when requesting %d\n", lenRead,
@@ -125,7 +116,7 @@ int main( int argc, char *argv[] )
 			{
 				fprintf( stderr, "FAIL: unknown format 0x%02x encountered\n",
 				  *(uchar_t *)compPtr );
-				exit( 1 );
+				return 1;
 			}
 #if DEBUG
 			fprintf( stderr, "available = %d\n", available );
@@ -141,13 +132,13 @@ int main( int argc, char *argv[] )
 				if( lenWritten == -1 )
 				{
 					perror( "write to STDOUT" );
-					exit( 4 );
+					return 4;
 				}
 				else if( lenWritten != OUTBLOCK )
 				{
 					fprintf( stderr, "Short write!  Wrote %d, had %d\n",
 		  			  lenWritten, OUTBLOCK );
-					exit( 5 );
+					return 5;
 				}
 				// now move what's left to beginning of next OUTBLOCK
 #if DEBUG
@@ -176,14 +167,14 @@ int main( int argc, char *argv[] )
 	if( -1 == (lenWritten = write( STDOUT_FILENO, outData, (outPtr - outData))))
 	{
 		perror( "final write to STDOUT" );
-		exit( 6 );
+		return 6;
 	}
 	else if( lenWritten != (outPtr - outData) )
 	{
 		fprintf( stderr, "Short write!  Wrote %d, had %d\n", lenWritten,
 		  (outPtr - outData) );
-		exit( 7 );
+		return 7;
 	}
 
-	exit( 0 );
+	return 0;
 }

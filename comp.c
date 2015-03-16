@@ -10,17 +10,9 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
-#define DEBUG 0
+#include "inco.h"
 
-#define FLAG_UNCOMPRESSED 0
-#define FLAG_LZJB 1
-
-// must be an even multiple of COMPBLOCK
-#define READBLOCK 1048576
-#define OUTBLOCK 1048576
-#define COMPBLOCK 16384
-
-int main( int argc, char *argv[] )
+int comp( void )
 {
 	void *rawData;
 	void *endData;
@@ -39,7 +31,7 @@ int main( int argc, char *argv[] )
 	if( NULL == (rawData = malloc( READBLOCK )))
 	{
 		perror( "malloc rawData" );
-		exit( 2 );
+		return 2;
 	}
 
 	// allocate sufficient output buffer to hold an entire OUTBLOCK plus
@@ -47,7 +39,7 @@ int main( int argc, char *argv[] )
 	if( NULL == (compData = malloc( OUTBLOCK + COMPBLOCK + 1 )))
 	{
 		perror( "malloc compData" );
-		exit( 3 );
+		return 3;
 	}
 
 	compPtr = compData;		// next free byte in the compressed data buffer
@@ -123,7 +115,7 @@ int main( int argc, char *argv[] )
 				// this should never, ever happen
 				fprintf( stderr, "FAIL: lenComp=%d > inSize=%d!!!",
 				  lenComp, inSize );
-				exit( 6 );
+				return 6;
 			}
 
 			if( lenComp == inSize )
@@ -150,13 +142,13 @@ int main( int argc, char *argv[] )
 				if( lenWritten == -1 )
 				{	
 					perror( "write to STDOUT" );
-					exit( 4 );
+					return 4;
 				}
 				else if( lenWritten != OUTBLOCK )
 				{
 					fprintf( stderr, "Short write!  Wrote %d, had %d\n",
 					  lenWritten, OUTBLOCK );
-					exit( 5 );
+					return 5;
 				}
 				// copy what's left to start of the buffer
 				extra = compPtr - compData - OUTBLOCK;
@@ -180,14 +172,14 @@ int main( int argc, char *argv[] )
 	if( -1 == (lenWritten = write( STDOUT_FILENO, compData, compPtr - compData )))
 	{
 		perror( "write to STDOUT" );
-		exit( 4 );
+		return 4;
 	}
 	else if( lenWritten != (compPtr - compData) )
 	{
 		fprintf( stderr, "Short write!  Wrote %d, had %d\n", lenWritten,
 		  (compPtr - compData) );
-		exit( 5 );
+		return 5;
 	}
 
-	exit( 0 );
+	return 0;
 }

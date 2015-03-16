@@ -1,14 +1,10 @@
 CFLAGS = -O
+OBJS = lzjb.o comp.o decomp.o inco.o
 
-all : inline
+all : inco
 
 clean :
-	rm -f comp decomp *.o
+	rm -f inco *.o
 
-inline: comp decomp
-
-comp : lzjb.o comp.o
-	$(CC) -o comp $(LDFLAGS) lzjb.o comp.o
-
-decomp : lzjb.o decomp.o
-	$(CC) -o decomp $(LDFLAGS) lzjb.o decomp.o
+inco : $(OBJS) inco.h
+	$(CC) -o inco $(LDFLAGS) $(OBJS)
