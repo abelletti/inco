@@ -16,3 +16,16 @@ Some tests:
 
 ./comp <debug | nc titan 1234
 nc -l -p 1234 | ./decomp >debug
+
+NEXT STEPS
+----------
+Add logic to determine OS in Makefile so that we can build on Linux
+Combine comp & decomp into inco, determine function based on name
+lz4 support
+make debugging a runtime option
+implement with getopt
+Optimize
+
+FUTURE
+------
+Multi-thread so that reading & writing overlap

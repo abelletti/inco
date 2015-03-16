@@ -1,1 +1,12 @@
-Got to have some basic description of what this does and how to use it.
+This is the "inco" fast stream compress/decompression tool.
+
+It uses (currently) the LZJB algorithm that's built into ZFS.  It's not
+very powerful, but it is very quick.  Perfect for use in conjunction with
+zfs send/recv over a slow (<= 1Gbps) network link.
+
+Example use, sender:
+zfs send zfs/havoc@snap1 | comp | mbuffer -O titan:1234
+
+Example use, receiver:
+mbuffer -I 1234 | decomp | zfs recv rpool/havoc
+
