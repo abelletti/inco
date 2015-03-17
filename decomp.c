@@ -8,6 +8,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#ifdef LINUX
+#include <stdint.h>
+typedef uint8_t uchar_t;
+#define NBBY 8
+#endif
+
 #include "defs.h"
 #include "decomp.h"
 

@@ -118,6 +118,11 @@
  */
 
 #include <sys/types.h>
+#ifdef LINUX
+#include <stdint.h>
+typedef uint8_t uchar_t;
+#define NBBY 8
+#endif
 
 #define	MATCH_BITS	6
 #define	MATCH_MIN	3

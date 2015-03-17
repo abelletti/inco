@@ -1,6 +1,17 @@
 CFLAGS = -O
 OBJS = lzjb.o comp.o decomp.o inco.o
 
+UNAME := $(shell uname)
+ifeq ($(UNAME),Linux)
+	CFLAGS += -DLINUX
+endif
+ifeq ($(UNAME),SunOS)
+	CFLAGS += -DSOLARIS
+endif
+ifeq ($(UNAME),Darwin)
+	CFLAGS += -DOSX
+endif
+
 all : inco
 
 clean :

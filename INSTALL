@@ -1,10 +1,10 @@
 The build process is very primitive at the moment.
 
-Currently you must be using Solaris or a Solaris derivative of some sort.
+Currently you must be using Solaris or a Solaris derivative, or else Linux.
 Build with:
 
-CC=gcc make
+CC=gcc gmake (on Linux simply "make" will work)
 
 Also available:
 
-make clean
+gmake clean

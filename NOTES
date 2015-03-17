@@ -19,7 +19,6 @@ nc -l -p 1234 | ./decomp >debug
 
 NEXT STEPS
 ----------
-Add logic to determine OS in Makefile so that we can build on Linux
 lz4 support
 Optimize
 
@@ -45,3 +44,5 @@ You may additionally want packages for "netcat" and "mbuffer"
 
 Don't forget to add /opt/gcc-4.8.1/bin to your PATH, perhaps in vagrant's
 .bash_profile.
+
+Or just test on Linux!
