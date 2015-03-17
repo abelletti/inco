@@ -8,7 +8,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#include "inco.h"
+#include "defs.h"
+#include "decomp.h"
 
 int decomp( void )
 {
@@ -60,10 +61,9 @@ int decomp( void )
 				perror( "read from STDIN" );
 				return 4;
 			}
-#if DEBUG
-			fprintf( stderr, "DC: read %d when requesting %d\n", lenRead,
-			  INBLOCK - available );
-#endif
+			if( Debug )
+				fprintf( stderr, "DC: read %d when requesting %d\n",
+				  lenRead, INBLOCK - available );
 			if( !lenRead )
 			{
 				// EOF, we're done reading!
@@ -83,18 +83,21 @@ int decomp( void )
 
 		compPtr = compData;
 		do {
-#if DEBUG
-			fprintf( stderr, "DC: coming into decompress, available=%d\n",
-			  available );
-#endif
+			if( Debug >= 2 )
+				fprintf( stderr,
+				  "DC: coming into decompress, available=%d\n", available );
+
 			if( *(uchar_t *)compPtr == FLAG_LZJB )
 			{
 				lenDecomp = decompress( compPtr+1, outPtr, available-1,
 				  COMPBLOCK, &lenUsed );
-#if DEBUG
-				fprintf( stderr, "DC: expanded to %d bytes\n", lenDecomp );
-				fprintf( stderr, "DC: used %d compressed bytes\n", lenUsed );
-#endif
+				if( Debug >= 2 )
+				{
+					fprintf( stderr, "DC: expanded to %d bytes\n",
+					  lenDecomp );
+					fprintf( stderr, "DC: used %d compressed bytes\n",
+					  lenUsed );
+				}
 				compPtr += (lenUsed+1);
 				outPtr += lenDecomp;
 				available -= (lenUsed+1);
@@ -105,9 +108,8 @@ int decomp( void )
 				if( size > COMPBLOCK )
 					size = COMPBLOCK;
 				memcpy( outPtr, compPtr+1, size );
-#if DEBUG
-				fprintf( stderr, "DC: copied %d bytes as-is\n", size );
-#endif
+				if( Debug >= 2 )
+					fprintf( stderr, "DC: copied %d bytes as-is\n", size );
 				compPtr += (size+1);
 				outPtr += size;
 				available -= (size+1);
@@ -118,17 +120,17 @@ int decomp( void )
 				  *(uchar_t *)compPtr );
 				return 1;
 			}
-#if DEBUG
-			fprintf( stderr, "available = %d\n", available );
-#endif
+			if( Debug >= 2 )
+				fprintf( stderr, "available = %d\n", available );
+			
 			// now, is outData getting full enough that we need to flush?
 
 			if( (outEnd - outPtr) < COMPBLOCK )
-			{	// we may not have enough room for another expanded block, gotta flush
+			{	// we may not have enough room for another expanded block,
+				// gotta flush
 				lenWritten = write( STDOUT_FILENO, outData, OUTBLOCK);
-#if DEBUG
-				fprintf( stderr, "DC: Wrote %d bytes\n", lenWritten );
-#endif
+				if( Debug )
+					fprintf( stderr, "DC: Wrote %d bytes\n", lenWritten );
 				if( lenWritten == -1 )
 				{
 					perror( "write to STDOUT" );
@@ -141,18 +143,16 @@ int decomp( void )
 					return 5;
 				}
 				// now move what's left to beginning of next OUTBLOCK
-#if DEBUG
-				fprintf( stderr,
-				  "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
-				  outData, outPtr, (outEnd - outPtr));
-#endif
+				if( Debug >= 2 )
+					fprintf( stderr,
+					  "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
+					  outData, outPtr, (outEnd - outPtr));
 				memmove( outData, outPtr, (outEnd - outPtr));
 				outPtr -= OUTBLOCK;
-#if DEBUG
-				fprintf( stderr,
-				  "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
-				  outData, outPtr, (outEnd - outPtr));
-#endif
+				if( Debug >= 2 )	
+					fprintf( stderr,
+					  "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
+					  outData, outPtr, (outEnd - outPtr));
 			}
 		} while( available >= (COMPBLOCK +1 ));
 

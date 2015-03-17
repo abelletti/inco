@@ -6,7 +6,13 @@ all : inco
 clean :
 	rm -f inco comp decomp *.o
 
-inco : $(OBJS) inco.h
+inco : $(OBJS)
 	$(CC) -o inco $(LDFLAGS) $(OBJS)
-	ln -s inco comp
-	ln -s inco decomp
+	ln -fs inco comp
+	ln -fs inco decomp
+
+comp.o : comp.c defs.h comp.h
+
+decomp.o : decomp.c defs.h decomp.h
+
+inco.o : inco.c defs.h inco.h

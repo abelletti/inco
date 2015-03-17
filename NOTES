@@ -19,7 +19,6 @@ nc -l -p 1234 | ./decomp >debug
 
 NEXT STEPS
 ----------
-make debugging a runtime option via -D#
 Add logic to determine OS in Makefile so that we can build on Linux
 lz4 support
 Optimize

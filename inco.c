@@ -4,9 +4,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include "defs.h"
 #include "inco.h"
 
 int Mode = DEFAULT;
+int Debug = 0;
 char *myName;		// what name were we invoked with?
 
 int main( int argc, char* argv[] )
@@ -25,8 +28,12 @@ int main( int argc, char* argv[] )
 			case 'd': 
 				Mode = DECOMPRESS;
 				break;
+			case 'D':
+				Debug++;
+				break;
 			case '?':
-				fprintf( stderr, "usage: %s: %s\n", argv[0], OPTIONS );
+			case 'h':
+				showHelp();
 				exit( 1 );
 		}
 	}
@@ -44,4 +51,15 @@ int main( int argc, char* argv[] )
 			else
 				exit( decomp() );
 	}
+}
+
+
+void showHelp( void )
+{
+	fprintf( stderr, "usage: %s -%s\n", myName, OPTIONS );
+	fprintf( stderr, "  -c : Compression mode\n" );
+	fprintf( stderr, "  -d : Decompression mode\n" );
+	fprintf( stderr, "  -D : Send debug output to stderr\n" );
+	fprintf( stderr, "  -DD : Generate additional debug output\n" );
+	fprintf( stderr, "  -h : This listing of options\n" );
 }

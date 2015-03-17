@@ -10,7 +10,8 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
-#include "inco.h"
+#include "defs.h"
+#include "comp.h"
 
 int comp( void )
 {
@@ -53,9 +54,10 @@ int comp( void )
 	
 		lenRead = read( STDIN_FILENO, rawData, READBLOCK );
 		endData = rawData + lenRead;	// end of the raw data block, first free byte
-#if DEBUG
-		fprintf( stderr, "read %d bytes\n", lenRead );
-#endif
+
+		if( Debug )
+			fprintf( stderr, "read %d bytes\n", lenRead );
+
 		// hit EOF and done?
 		if( lenRead == 0 ) { break; }
 
@@ -64,16 +66,20 @@ int comp( void )
 		// this could require more than one try, so we'll loop
 		{
 			int remaining = COMPBLOCK - (lenRead % COMPBLOCK );
-#if DEBUG
-			fprintf( stderr, "need to fill %d bytes\n", remaining );
-#endif
+			if( Debug >= 2 )
+				fprintf( stderr, "need to fill %d bytes\n", remaining );
+
 			do {
-				lenRead = read( STDIN_FILENO, endData, remaining );
-#if DEBUG
-				fprintf( stderr, "read %d more bytes\n", lenRead );
-				fprintf( stderr, "errno = %d\n", errno );
-				perror( "reading more" );
-#endif
+				if( -1 == (lenRead = read( STDIN_FILENO, endData, remaining )))
+				{
+					perror( "reading more" );
+					return 7;
+				}
+				if( Debug >= 2 )
+				{
+					fprintf( stderr, "read %d more bytes\n", lenRead );
+					fprintf( stderr, "errno = %d\n", errno );
+				}
 				remaining -= lenRead;
 				endData += lenRead;	// end of the raw data block
 			} while ( (lenRead != 0) && (remaining != 0 ));
@@ -85,13 +91,15 @@ int comp( void )
 
 		for( readPtr = rawData; readPtr < endData; readPtr += COMPBLOCK )
 		{
-#if DEBUG
-			fprintf( stderr,
-			  "endData - readPtr (data left in buffer to compress) = %d\n",
-			  (endData - readPtr ));
-			fprintf( stderr, "compPtr offset (how much output in buffer) = %d\n",
-			  compPtr - compData );
-#endif
+			if( Debug >= 2 )
+			{
+				fprintf( stderr,
+				  "endData - readPtr (data left in buffer to compress) = %d\n",
+				  (endData - readPtr ));
+				fprintf( stderr,
+				  "compPtr offset (how much output in buffer) = %d\n",
+				  compPtr - compData );
+			}
 			// if we have at least a full COMPBLOCK left to compress
 			if( (endData - readPtr) >= COMPBLOCK)
 			{
@@ -100,16 +108,16 @@ int comp( void )
 			else	// this is the final input block
 			{
 				inSize = endData - readPtr;
-#if DEBUG
-				fprintf( stderr, "dealing with partial COMPBLOCK of %d\n", inSize );
-#endif
+				if( Debug )
+					fprintf( stderr,
+					  "dealing with partial COMPBLOCK of %d\n", inSize );
 			}
 			// compress to compPtr+1 in order to leave *compPtr free for
 			// the format flag
 			lenComp = compress( readPtr, compPtr+1, inSize );
-#if DEBUG
-			fprintf( stderr, "compressed %d bytes to %d bytes\n", inSize, lenComp );
-#endif
+			if( Debug >= 2 )
+				fprintf( stderr, "compressed %d bytes to %d bytes\n",
+				  inSize, lenComp );
 			if( lenComp > inSize )
 			{
 				// this should never, ever happen
@@ -134,12 +142,11 @@ int comp( void )
 			// we've got a full output block to write!
 			{
 				int extra;	// bytes past OUTBLOCK in buffer
-#if DEBUG
-				fprintf( stderr, "Writing %d bytes\n", OUTBLOCK );
-#endif
-				lenWritten = write( STDOUT_FILENO, compData, OUTBLOCK );	
-
-				if( lenWritten == -1 )
+				if( Debug )
+					fprintf( stderr, "Writing %d bytes\n", OUTBLOCK );
+				
+				if( -1 == 
+				  (lenWritten = write( STDOUT_FILENO, compData, OUTBLOCK )))
 				{	
 					perror( "write to STDOUT" );
 					return 4;
@@ -152,23 +159,25 @@ int comp( void )
 				}
 				// copy what's left to start of the buffer
 				extra = compPtr - compData - OUTBLOCK;
-#if DEBUG
-				fprintf( stderr, "compData = %x, compPtr = %x\n", compData, compPtr );
-				fprintf( stderr, "%d extra bytes in output buffer\n", extra );
-#endif
+				if( Debug >= 2 )
+				{
+					fprintf( stderr, "compData = %x, compPtr = %x\n",
+					  compData, compPtr );
+					fprintf( stderr, "%d extra bytes in output buffer\n",
+					  extra );
+				}
 				memmove( compData, compData + OUTBLOCK, extra );
 				compPtr -= OUTBLOCK;
-#if DEBUG
-				fprintf( stderr, "compData = %x, compPtr = %x\n", compData, compPtr );
-#endif
+				if( Debug >= 2 )
+					fprintf( stderr, "compData = %x, compPtr = %x\n",
+					  compData, compPtr );
 			}
 		}
 	}
 
 	// now write the remaining compressed data
-#if DEBUG
-	fprintf( stderr, "Writing %d bytes to stdout\n", (compPtr - compData));
-#endif
+	if( Debug )
+		fprintf( stderr, "Writing %d bytes to stdout\n", (compPtr - compData));
 	if( -1 == (lenWritten = write( STDOUT_FILENO, compData, compPtr - compData )))
 	{
 		perror( "write to STDOUT" );

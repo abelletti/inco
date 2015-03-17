@@ -17,6 +17,6 @@ decompression.  The function may be selected in one of two ways:
     compression is selected.  If invoked as "decomp", decompression will
     occur.
 
-2.  "inco" will also accept the following options:
+2.  "inco" will also accept the following options (among others):
     -c : select compression
     -d : select decompression
