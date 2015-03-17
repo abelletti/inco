@@ -10,3 +10,13 @@ zfs send zfs/havoc@snap1 | comp | mbuffer -O titan:1234
 Example use, receiver:
 mbuffer -I 1234 | decomp | zfs recv rpool/havoc
 
+Note that the executable is "inco" which performs both compression and
+decompression.  The function may be selected in one of two ways:
+
+1.  If invoked as "comp" (via a symbolic link or renamed executable),
+    compression is selected.  If invoked as "decomp", decompression will
+    occur.
+
+2.  "inco" will also accept the following options:
+    -c : select compression
+    -d : select decompression

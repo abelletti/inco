@@ -19,11 +19,9 @@ nc -l -p 1234 | ./decomp >debug
 
 NEXT STEPS
 ----------
+make debugging a runtime option via -D#
 Add logic to determine OS in Makefile so that we can build on Linux
-Combine comp & decomp into inco, determine function based on name
 lz4 support
-make debugging a runtime option
-implement with getopt
 Optimize
 
 FUTURE
@@ -48,4 +46,3 @@ You may additionally want packages for "netcat" and "mbuffer"
 
 Don't forget to add /opt/gcc-4.8.1/bin to your PATH, perhaps in vagrant's
 .bash_profile.
-
