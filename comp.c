@@ -103,11 +103,11 @@ int comp( void )
 			if( Debug >= 2 )
 			{
 				fprintf( stderr,
-				  "endData - readPtr (data left in buffer to compress) = %ld\n",
-				  endData - readPtr );
+				  "endData - readPtr (data left in buffer to compress) = %d\n",
+				  (int) (endData - readPtr) );
 				fprintf( stderr,
-				  "compPtr offset (how much output in buffer) = %ld\n",
-				  compPtr - compData );
+				  "compPtr offset (how much output in buffer) = %d\n",
+				  (int) (compPtr - compData) );
 			}
 			// if we have at least a full COMPBLOCK left to compress
 			if( (endData - readPtr) >= COMPBLOCK)
@@ -186,7 +186,7 @@ int comp( void )
 
 	// now write the remaining compressed data
 	if( Debug )
-		fprintf( stderr, "Writing %ld bytes to stdout\n", compPtr - compData );
+		fprintf( stderr, "Writing %d bytes to stdout\n", (int) (compPtr - compData) );
 	if( -1 == (lenWritten = write( STDOUT_FILENO, compData, compPtr - compData )))
 	{
 		perror( "write to STDOUT" );
@@ -194,8 +194,8 @@ int comp( void )
 	}
 	else if( lenWritten != (compPtr - compData) )
 	{
-		fprintf( stderr, "Short write!  Wrote %d, had %ld\n", lenWritten,
-		  (compPtr - compData) );
+		fprintf( stderr, "Short write!  Wrote %d, had %d\n", lenWritten,
+		  (int) (compPtr - compData) );
 		return 5;
 	}
 
