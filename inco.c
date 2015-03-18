@@ -3,9 +3,12 @@
 #include <libgen.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include "defs.h"
+#include "comp.h"
+#include "decomp.h"
 #include "inco.h"
 
 int Mode = DEFAULT;
@@ -51,6 +54,7 @@ int main( int argc, char* argv[] )
 			else
 				exit( decomp() );
 	}
+	exit( 0 ); // unreachable
 }
 
 

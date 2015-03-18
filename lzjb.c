@@ -24,7 +24,10 @@
  * All rights reserved.
  */
 
+// ARB ifndef'd since pragma ident is a Sun CC-ism
+#ifndef __GNUC__
 #pragma ident	"%Z%%M%	%I%	%E% SMI"
+#endif
 
 /*
  * NOTE: this file is compiled into the kernel, cprboot, and savecore.
@@ -124,6 +127,8 @@ typedef uint8_t uchar_t;
 #define NBBY 8
 #endif
 
+#include "lzjb.h"
+
 #define	MATCH_BITS	6
 #define	MATCH_MIN	3
 #define	MATCH_MAX	((1 << MATCH_BITS) + (MATCH_MIN - 1))
@@ -135,7 +140,7 @@ compress(void *s_start, void *d_start, size_t s_len)
 {
 	uchar_t *src = s_start;
 	uchar_t *dst = d_start;
-	uchar_t *cpy, *copymap;
+	uchar_t *cpy, *copymap = d_start; // ARB initialized for warning-compliance
 	int copymask = 1 << (NBBY - 1);
 	int mlen, offset;
 	uint16_t *hp;
@@ -182,13 +187,13 @@ compress(void *s_start, void *d_start, size_t s_len)
 // modified by ARB to return *s_used, a count of how many source bytes were consumed
 // necessary for streaming use
 size_t
-decompress(void *s_start, void *d_start, size_t s_len, size_t d_len, size_t *s_used)	// ARB
+decompress(void *s_start, void *d_start, size_t s_len, size_t d_len, size_t *s_used) // ARB added s_used to enable streaming use
 {
 	uchar_t *src = s_start;
 	uchar_t *dst = d_start;
 	uchar_t *s_end = (uchar_t *)s_start + s_len;
 	uchar_t *d_end = (uchar_t *)d_start + d_len;
-	uchar_t *cpy, copymap;
+	uchar_t *cpy, copymap = 0; // ARB initialized copymap to zero to be warning-compliant
 	int copymask = 1 << (NBBY - 1);
 
 #if 0	// ARB

@@ -1,4 +1,4 @@
-CFLAGS = -O
+CFLAGS = -O -Wall
 OBJS = lzjb.o comp.o decomp.o inco.o
 
 UNAME := $(shell uname)

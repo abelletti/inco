@@ -18,6 +18,9 @@ typedef uint8_t uchar_t;
 
 #include "defs.h"
 #include "comp.h"
+#include "lzjb.h"
+
+extern int Debug;
 
 int comp( void )
 {
@@ -100,10 +103,10 @@ int comp( void )
 			if( Debug >= 2 )
 			{
 				fprintf( stderr,
-				  "endData - readPtr (data left in buffer to compress) = %d\n",
-				  (endData - readPtr ));
+				  "endData - readPtr (data left in buffer to compress) = %ld\n",
+				  endData - readPtr );
 				fprintf( stderr,
-				  "compPtr offset (how much output in buffer) = %d\n",
+				  "compPtr offset (how much output in buffer) = %ld\n",
 				  compPtr - compData );
 			}
 			// if we have at least a full COMPBLOCK left to compress
@@ -167,7 +170,7 @@ int comp( void )
 				extra = compPtr - compData - OUTBLOCK;
 				if( Debug >= 2 )
 				{
-					fprintf( stderr, "compData = %x, compPtr = %x\n",
+					fprintf( stderr, "compData = %p, compPtr = %p\n",
 					  compData, compPtr );
 					fprintf( stderr, "%d extra bytes in output buffer\n",
 					  extra );
@@ -175,7 +178,7 @@ int comp( void )
 				memmove( compData, compData + OUTBLOCK, extra );
 				compPtr -= OUTBLOCK;
 				if( Debug >= 2 )
-					fprintf( stderr, "compData = %x, compPtr = %x\n",
+					fprintf( stderr, "compData = %p, compPtr = %p\n",
 					  compData, compPtr );
 			}
 		}
@@ -183,7 +186,7 @@ int comp( void )
 
 	// now write the remaining compressed data
 	if( Debug )
-		fprintf( stderr, "Writing %d bytes to stdout\n", (compPtr - compData));
+		fprintf( stderr, "Writing %ld bytes to stdout\n", compPtr - compData );
 	if( -1 == (lenWritten = write( STDOUT_FILENO, compData, compPtr - compData )))
 	{
 		perror( "write to STDOUT" );
@@ -191,7 +194,7 @@ int comp( void )
 	}
 	else if( lenWritten != (compPtr - compData) )
 	{
-		fprintf( stderr, "Short write!  Wrote %d, had %d\n", lenWritten,
+		fprintf( stderr, "Short write!  Wrote %d, had %ld\n", lenWritten,
 		  (compPtr - compData) );
 		return 5;
 	}

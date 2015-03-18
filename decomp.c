@@ -16,6 +16,9 @@ typedef uint8_t uchar_t;
 
 #include "defs.h"
 #include "decomp.h"
+#include "lzjb.h"
+
+extern int Debug;
 
 int decomp( void )
 {
@@ -25,7 +28,6 @@ int decomp( void )
 	void *outPtr;
 	void *outEnd;		// end of the output buffer
 	int lenRead;
-	int lenRemaining;
 	int lenDecomp;
 	int lenUsed;
 	int lenWritten;
@@ -96,7 +98,7 @@ int decomp( void )
 			if( *(uchar_t *)compPtr == FLAG_LZJB )
 			{
 				lenDecomp = decompress( compPtr+1, outPtr, available-1,
-				  COMPBLOCK, &lenUsed );
+				  COMPBLOCK, (size_t *) &lenUsed );
 				if( Debug >= 2 )
 				{
 					fprintf( stderr, "DC: expanded to %d bytes\n",
@@ -151,14 +153,14 @@ int decomp( void )
 				// now move what's left to beginning of next OUTBLOCK
 				if( Debug >= 2 )
 					fprintf( stderr,
-					  "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
-					  outData, outPtr, (outEnd - outPtr));
-				memmove( outData, outPtr, (outEnd - outPtr));
+					  "DC: outData = %p, outPtr = %p, outPtr-outEnd = %ld\n",
+					  outData, outPtr, outEnd - outPtr );
+				memmove( outData, outPtr, (outEnd - outPtr) );
 				outPtr -= OUTBLOCK;
 				if( Debug >= 2 )	
 					fprintf( stderr,
-					  "DC: outData = %x, outPtr = %x, outPtr-outEnd = %d\n",
-					  outData, outPtr, (outEnd - outPtr));
+					  "DC: outData = %p, outPtr = %p, outPtr-outEnd = %ld\n",
+					  outData, outPtr, outEnd - outPtr );
 			}
 		} while( available >= (COMPBLOCK +1 ));
 
@@ -177,8 +179,8 @@ int decomp( void )
 	}
 	else if( lenWritten != (outPtr - outData) )
 	{
-		fprintf( stderr, "Short write!  Wrote %d, had %d\n", lenWritten,
-		  (outPtr - outData) );
+		fprintf( stderr, "Short write!  Wrote %d, had %ld\n", lenWritten,
+		  outPtr - outData );
 		return 7;
 	}
 
